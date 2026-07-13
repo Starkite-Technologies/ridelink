@@ -23,8 +23,7 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-font",
-      "expo-status-bar"
+      "expo-font"
     ]
   }
 }
