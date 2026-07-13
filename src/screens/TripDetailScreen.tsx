@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/Typography";
+import BackButton from "../components/BackButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TripsStackParamList } from "../navigation/types";
 import type { Trip } from "../types";
@@ -10,8 +12,9 @@ import { colors, radii } from "../theme";
 
 type Props = NativeStackScreenProps<TripsStackParamList, "TripDetail">;
 
-export default function TripDetailScreen({ route }: Props) {
+export default function TripDetailScreen({ route, navigation }: Props) {
   const { idToken, isSignedIn } = useAuth();
+  const insets = useSafeAreaInsets();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
@@ -62,7 +65,8 @@ export default function TripDetailScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
-      <View style={styles.hero}>
+      <View style={[styles.hero, { paddingTop: insets.top }]}>
+        <BackButton onPress={() => navigation.goBack()} topOffset={insets.top + 16} />
         <View style={styles.sun} />
         <View style={styles.road} />
         <Text style={styles.heroTitle}>Trip details</Text>
@@ -129,7 +133,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   content: { paddingBottom: 28 },
   centered: { flex: 1, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
-  hero: { height: 210, backgroundColor: colors.navy, overflow: "hidden", justifyContent: "flex-end", padding: 20 },
+  hero: { minHeight: 210, backgroundColor: colors.navy, overflow: "hidden", justifyContent: "flex-end", padding: 20 },
   sun: { position: "absolute", right: 28, top: 70, width: 62, height: 62, borderRadius: 31, backgroundColor: "#f59e42" },
   road: {
     position: "absolute",

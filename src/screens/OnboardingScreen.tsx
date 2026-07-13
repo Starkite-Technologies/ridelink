@@ -14,8 +14,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { setHasSeenOnboarding } from "../onboarding/onboardingStorage";
 import { colors, radii } from "../theme";
 
-export type OnboardingDestination = "signIn" | "signUp";
-
 type Slide = {
   key: string;
   eyebrow: string;
@@ -87,16 +85,15 @@ function Illustration({ type }: { type: Slide["art"] }) {
   );
 }
 
-export default function OnboardingScreen({ onDone }: { onDone: (destination: OnboardingDestination) => void }) {
+export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
-  const [showWelcome, setShowWelcome] = useState(false);
   const listRef = useRef<FlatList<Slide>>(null);
 
-  const finish = async (destination: OnboardingDestination) => {
+  const finish = async () => {
     await setHasSeenOnboarding();
-    onDone(destination);
+    onDone();
   };
 
   const next = () => {
@@ -104,44 +101,18 @@ export default function OnboardingScreen({ onDone }: { onDone: (destination: Onb
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       return;
     }
-    setShowWelcome(true);
+    finish();
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
   };
 
-  if (showWelcome) {
-    return (
-      <View style={[styles.welcome, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-        <Image source={require("../../assets/welcome-riders.png")} resizeMode="cover" style={styles.welcomeImage} accessibilityLabel="Two RideLink travelers standing beside a car" />
-        <View style={styles.welcomeScrim} />
-        <Text style={styles.welcomeBrand}>RIDELINK</Text>
-        <View style={styles.welcomeContent}>
-          <View style={styles.welcomeCopy}>
-            <Text style={styles.welcomeEyebrow}>RIDE TOGETHER. GO FURTHER.</Text>
-            <Text style={styles.welcomeTitle}>Let's get you moving.</Text>
-            <Text style={styles.welcomeBody}>Sign in to manage your trips and bookings, or explore available rides as a guest.</Text>
-          </View>
-          <View style={styles.welcomeActions}>
-            <Pressable style={({ pressed }) => [styles.welcomePrimaryButton, pressed && styles.pressed]} onPress={() => finish("signIn")}>
-              <Text style={styles.welcomePrimaryButtonText}>Sign in</Text>
-            </Pressable>
-            <Pressable style={({ pressed }) => [styles.welcomeSecondaryButton, pressed && styles.pressed]} onPress={() => finish("signUp")}>
-              <Text style={styles.welcomeSecondaryButtonText}>Create an account</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.legal}>By continuing, you agree to RideLink's Terms and Privacy Policy.</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 18 }]}>
       <View style={styles.topBar}>
         <View style={styles.wordmarkRow}><View style={styles.miniPin} /><Text style={styles.wordmark}>RIDELINK</Text></View>
-        <Pressable hitSlop={12} onPress={() => setShowWelcome(true)}><Text style={styles.skipText}>Skip</Text></Pressable>
+        <Pressable hitSlop={12} onPress={finish}><Text style={styles.skipText}>Skip</Text></Pressable>
       </View>
       <FlatList
         ref={listRef}
@@ -209,7 +180,7 @@ const styles = StyleSheet.create({
   checkText: { color: colors.surface, fontSize: 34, fontWeight: "800" },
   copy: { alignItems: "center", gap: 10, paddingHorizontal: 12 },
   eyebrow: { color: colors.success, fontSize: 12, fontWeight: "900", letterSpacing: 1.5 },
-  title: { color: colors.ink, fontSize: 32, lineHeight: 38, fontWeight: "900", textAlign: "center" },
+  title: { color: colors.ink, fontSize: 32, lineHeight: 42, fontWeight: "900", textAlign: "center" },
   bodyText: { color: colors.muted, fontSize: 16, lineHeight: 24, textAlign: "center", maxWidth: 330 },
   bottom: { paddingHorizontal: 24, gap: 22 },
   dots: { height: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
@@ -218,25 +189,4 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
   primaryButtonText: { color: colors.surface, fontSize: 16, fontWeight: "800" },
   pressed: { opacity: 0.84, transform: [{ scale: 0.99 }] },
-  welcome: { flex: 1, backgroundColor: colors.navy, paddingHorizontal: 26 },
-  welcomeImage: { ...StyleSheet.absoluteFillObject, width: "auto", height: "auto" },
-  welcomeScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3, 15, 30, 0.34)" },
-  welcomeBrand: { color: colors.surface, fontSize: 18, fontWeight: "900", letterSpacing: 2 },
-  welcomeContent: { flex: 1, justifyContent: "flex-end", gap: 20 },
-  brandMark: { width: 190, height: 190, borderRadius: 44, borderCurve: "continuous", backgroundColor: colors.navy, overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 38px rgba(3,28,58,0.22)" },
-  brandPin: { width: 76, height: 76, borderRadius: 38, borderBottomRightRadius: 10, backgroundColor: colors.success, transform: [{ rotate: "45deg" }], alignItems: "center", justifyContent: "center", zIndex: 2 },
-  brandPinHole: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.navy },
-  brandRoad: { position: "absolute", width: 240, height: 62, borderRadius: 40, bottom: -6, left: 12, backgroundColor: colors.surface, transform: [{ rotate: "-18deg" }] },
-  welcomeCopy: { alignItems: "center", gap: 10 },
-  welcomeEyebrow: { color: "#65e5c2", fontSize: 12, fontWeight: "900", letterSpacing: 1.5 },
-  welcomeTitle: { color: colors.surface, fontSize: 34, lineHeight: 41, fontWeight: "900", textAlign: "center" },
-  welcomeBody: { color: "rgba(255,255,255,0.84)", fontSize: 15, lineHeight: 22, textAlign: "center", maxWidth: 350 },
-  welcomeActions: { alignSelf: "stretch", gap: 12 },
-  welcomePrimaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", backgroundColor: colors.success, alignItems: "center", justifyContent: "center" },
-  welcomePrimaryButtonText: { color: colors.navy, fontSize: 16, fontWeight: "900" },
-  welcomeSecondaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.72)", backgroundColor: "rgba(3,28,58,0.52)", alignItems: "center", justifyContent: "center" },
-  welcomeSecondaryButtonText: { color: colors.surface, fontSize: 16, fontWeight: "800" },
-  secondaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", borderWidth: 1.5, borderColor: colors.navy, alignItems: "center", justifyContent: "center" },
-  secondaryButtonText: { color: colors.navy, fontSize: 16, fontWeight: "800" },
-  legal: { color: "rgba(255,255,255,0.62)", fontSize: 11, lineHeight: 16, textAlign: "center", paddingHorizontal: 24 },
 });

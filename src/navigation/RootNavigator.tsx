@@ -9,11 +9,11 @@ import TripDetailScreen from "../screens/TripDetailScreen";
 import PostTripScreen from "../screens/PostTripScreen";
 import BookingsScreen from "../screens/BookingsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import WelcomeScreen from "../screens/WelcomeScreen";
 import SignInScreen from "../screens/SignInScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import ConfirmSignUpScreen from "../screens/ConfirmSignUpScreen";
 import { colors } from "../theme";
-import type { OnboardingDestination } from "../screens/OnboardingScreen";
 import { useAuth } from "../auth/AuthContext";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -23,8 +23,8 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 function TripsStackNavigator() {
   return (
     <TripsStack.Navigator screenOptions={{ headerTitleStyle: { fontFamily: "Manrope_700Bold" } }}>
-      <TripsStack.Screen name="TripList" component={TripListScreen} options={{ title: "Trips" }} />
-      <TripsStack.Screen name="TripDetail" component={TripDetailScreen} options={{ title: "Trip Details" }} />
+      <TripsStack.Screen name="TripList" component={TripListScreen} options={{ title: "Trips", headerShown: false }} />
+      <TripsStack.Screen name="TripDetail" component={TripDetailScreen} options={{ title: "Trip Details", headerShown: false }} />
     </TripsStack.Navigator>
   );
 }
@@ -32,20 +32,21 @@ function TripsStackNavigator() {
 function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerTitleStyle: { fontFamily: "Manrope_700Bold" } }}>
-      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: "Profile" }} />
+      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: "Profile", headerShown: false }} />
     </ProfileStack.Navigator>
   );
 }
 
-function AuthStackNavigator({ initialDestination }: { initialDestination: OnboardingDestination }) {
+function AuthStackNavigator() {
   return (
     <ProfileStack.Navigator
-      initialRouteName={initialDestination === "signUp" ? "SignUp" : "SignIn"}
+      initialRouteName="Welcome"
       screenOptions={{ headerTitleStyle: { fontFamily: "Manrope_700Bold" } }}
     >
+      <ProfileStack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="SignIn" component={SignInScreen} options={{ title: "Sign In", headerShown: false }} />
       <ProfileStack.Screen name="SignUp" component={SignUpScreen} options={{ title: "Sign Up", headerShown: false }} />
-      <ProfileStack.Screen name="ConfirmSignUp" component={ConfirmSignUpScreen} options={{ title: "Verify Email" }} />
+      <ProfileStack.Screen name="ConfirmSignUp" component={ConfirmSignUpScreen} options={{ title: "Verify Email", headerShown: false }} />
     </ProfileStack.Navigator>
   );
 }
@@ -94,22 +95,14 @@ function MainTabs() {
         })}
       >
         <Tab.Screen name="TripsTab" component={TripsStackNavigator} options={{ title: "Trips" }} />
-        <Tab.Screen
-          name="PostTrip"
-          component={PostTripScreen}
-          options={{ title: "Post a Trip", headerShown: true }}
-        />
-        <Tab.Screen
-          name="Bookings"
-          component={BookingsScreen}
-          options={{ title: "My Bookings", headerShown: true }}
-        />
+        <Tab.Screen name="PostTrip" component={PostTripScreen} options={{ title: "Post a Trip" }} />
+        <Tab.Screen name="Bookings" component={BookingsScreen} options={{ title: "My Bookings" }} />
       <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ title: "Profile" }} />
     </Tab.Navigator>
   );
 }
 
-export default function RootNavigator({ initialDestination = "signIn" }: { initialDestination?: OnboardingDestination }) {
+export default function RootNavigator() {
   const { isLoading, isSignedIn } = useAuth();
 
   if (isLoading) {
@@ -122,7 +115,7 @@ export default function RootNavigator({ initialDestination = "signIn" }: { initi
 
   return (
     <NavigationContainer>
-      {isSignedIn ? <MainTabs /> : <AuthStackNavigator initialDestination={initialDestination} />}
+      {isSignedIn ? <MainTabs /> : <AuthStackNavigator />}
     </NavigationContainer>
   );
 }

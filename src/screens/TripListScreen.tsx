@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Text } from "../components/Typography";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TripsStackParamList } from "../navigation/types";
 import type { Trip } from "../types";
@@ -11,6 +12,7 @@ import { colors, radii, shadow } from "../theme";
 type Props = NativeStackScreenProps<TripsStackParamList, "TripList">;
 
 export default function TripListScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,7 +66,7 @@ export default function TripListScreen({ navigation }: Props) {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
             <View style={styles.titleRow}>
               <View>
                 <Text style={styles.title}>Trips</Text>

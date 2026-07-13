@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text, TextInput } from "../components/Typography";
+import BackButton from "../components/BackButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
 import { useAuth } from "../auth/AuthContext";
-import { colors, radii, shadow } from "../theme";
+import { colors, radii } from "../theme";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "ConfirmSignUp">;
 
-export default function ConfirmSignUpScreen({ route }: Props) {
+export default function ConfirmSignUpScreen({ route, navigation }: Props) {
   const { confirmSignUp } = useAuth();
+  const insets = useSafeAreaInsets();
   const { email } = route.params;
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const handleConfirm = async () => {
     if (!code) {
@@ -30,43 +34,92 @@ export default function ConfirmSignUpScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Verify your email</Text>
-      <Text style={styles.subtitle}>We sent a code to {email}</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.hero}>
+        <BackButton onPress={() => navigation.goBack()} topOffset={insets.top + 16} />
+        <View style={styles.logoTile}>
+          <View style={styles.brandPin}><View style={styles.brandPinHole} /></View>
+          <View style={styles.logoRoad} />
+        </View>
+        <View style={styles.heroCopy}>
+          <Text style={styles.brandName}>RIDELINK</Text>
+          <Text style={styles.heroTitle}>Verify your email</Text>
+          <Text style={styles.heroSubtitle}>We sent a 6-digit code to {email}</Text>
+        </View>
+      </View>
 
-      <Text style={styles.label}>Verification code</Text>
-      <TextInput
-        style={styles.input}
-        value={code}
-        onChangeText={setCode}
-        placeholder="123456"
-        placeholderTextColor={colors.muted}
-        keyboardType="number-pad"
-      />
+      <View style={styles.formArea}>
+        <View style={styles.heading}>
+          <Text style={styles.formTitle}>Enter code</Text>
+          <Text style={styles.formSubtitle}>Check your inbox and enter the verification code below.</Text>
+        </View>
 
-      <Pressable style={[styles.button, submitting && styles.buttonDisabled]} onPress={handleConfirm} disabled={submitting}>
-        <Text style={styles.buttonText}>{submitting ? "Finishing setup..." : "Verify and continue"}</Text>
-      </Pressable>
+        <View style={styles.field}>
+          <Text style={styles.label}>Verification code</Text>
+          <TextInput
+            style={[styles.input, focused && styles.inputFocused]}
+            value={code}
+            onChangeText={setCode}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder="123456"
+            placeholderTextColor="#8b95a5"
+            keyboardType="number-pad"
+            autoFocus
+          />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.button, pressed && styles.pressed, submitting && styles.buttonDisabled]}
+          onPress={handleConfirm}
+          disabled={submitting}
+        >
+          {submitting ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.buttonText}>Verify and continue</Text>}
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.wash },
-  content: { margin: 20, padding: 20, justifyContent: "center", flexGrow: 1, backgroundColor: colors.surface, borderRadius: radii.xl, ...shadow },
-  title: { color: colors.ink, fontSize: 24, fontWeight: "800", marginBottom: 8, textAlign: "center" },
-  subtitle: { color: colors.muted, fontSize: 14, textAlign: "center", marginBottom: 24 },
-  label: { color: colors.text, fontSize: 12, fontWeight: "700", marginBottom: 6 },
+  screen: { flex: 1, backgroundColor: colors.wash },
+  content: { flexGrow: 1 },
+  hero: { minHeight: 250, backgroundColor: colors.heroTint, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 30, gap: 16 },
+  logoTile: { width: 92, height: 92, borderRadius: 24, borderCurve: "continuous", backgroundColor: colors.navy, overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 24px rgba(3,28,58,0.16)" },
+  brandPin: { width: 40, height: 40, borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: "#65e5c2", transform: [{ rotate: "45deg" }], alignItems: "center", justifyContent: "center", zIndex: 2 },
+  brandPinHole: { width: 13, height: 13, borderRadius: 7, backgroundColor: colors.navy },
+  logoRoad: { position: "absolute", width: 116, height: 28, borderRadius: 20, left: 12, bottom: -2, backgroundColor: colors.surface, transform: [{ rotate: "-18deg" }] },
+  heroCopy: { alignItems: "center", gap: 6 },
+  brandName: { color: colors.success, fontSize: 12, fontWeight: "900", letterSpacing: 1.8 },
+  heroTitle: { color: colors.ink, fontSize: 29, lineHeight: 35, fontWeight: "900", textAlign: "center" },
+  heroSubtitle: { color: colors.muted, fontSize: 14, lineHeight: 21, textAlign: "center", maxWidth: 320 },
+  formArea: { flex: 1, backgroundColor: colors.surface, padding: 24, gap: 24 },
+  heading: { gap: 7 },
+  formTitle: { color: colors.ink, fontSize: 25, lineHeight: 31, fontWeight: "900" },
+  formSubtitle: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  field: { gap: 7 },
+  label: { color: colors.text, fontSize: 13, fontWeight: "800" },
   input: {
-    borderWidth: 1,
+    height: 54,
+    backgroundColor: colors.wash,
+    borderWidth: 1.5,
     borderColor: colors.line,
     borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
+    borderCurve: "continuous",
+    paddingHorizontal: 16,
     color: colors.ink,
+    fontSize: 20,
+    letterSpacing: 6,
+    textAlign: "center",
   },
-  button: { marginTop: 24, backgroundColor: colors.navy, borderRadius: radii.md, paddingVertical: 15, alignItems: "center" },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.surface, fontSize: 16, fontWeight: "800" },
+  inputFocused: { borderColor: colors.navy, backgroundColor: colors.surface, boxShadow: "0 0 0 3px rgba(3,28,58,0.08)" },
+  button: { height: 56, backgroundColor: colors.navy, borderRadius: radii.md, borderCurve: "continuous", alignItems: "center", justifyContent: "center" },
+  buttonDisabled: { opacity: 0.6 },
+  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+  buttonText: { color: colors.surface, fontSize: 16, fontWeight: "900" },
 });

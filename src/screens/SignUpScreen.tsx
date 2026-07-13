@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text, TextInput } from "../components/Typography";
+import BackButton from "../components/BackButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardAwareScroll } from "../hooks/useKeyboardAwareScroll";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
 import { useAuth } from "../auth/AuthContext";
@@ -11,8 +14,21 @@ type Props = NativeStackScreenProps<ProfileStackParamList, "SignUp">;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 
+const PASSWORD_REQUIREMENTS: { key: string; label: string; test: (pw: string) => boolean }[] = [
+  { key: "length", label: "At least 8 characters", test: (pw) => pw.length >= 8 },
+  { key: "lowercase", label: "One lowercase letter", test: (pw) => /[a-z]/.test(pw) },
+  { key: "number", label: "One number", test: (pw) => /[0-9]/.test(pw) },
+];
+
+function isPasswordValid(pw: string) {
+  return PASSWORD_REQUIREMENTS.every((req) => req.test(pw));
+}
+
 export default function SignUpScreen({ navigation }: Props) {
   const { signUp } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { scrollRef, handleScroll, scrollToInput } = useKeyboardAwareScroll();
+  const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -26,6 +42,7 @@ export default function SignUpScreen({ navigation }: Props) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; phoneNumber?: string; email?: string; password?: string; terms?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [focusedField, setFocusedField] = useState<"firstName" | "lastName" | "phoneNumber" | "email" | "password" | null>(null);
 
   const handleSignUp = async () => {
     const cleanEmail = email.trim().toLowerCase();
@@ -36,7 +53,7 @@ export default function SignUpScreen({ navigation }: Props) {
     if (!lastName.trim()) nextErrors.lastName = "Enter your last name";
     if (!PHONE_REGEX.test(cleanPhone)) nextErrors.phoneNumber = "Include a valid country code, for example +1234567890";
     if (!EMAIL_REGEX.test(cleanEmail)) nextErrors.email = "Enter a valid email address";
-    if (password.length < 8) nextErrors.password = "Use at least 8 characters";
+    if (!isPasswordValid(password)) nextErrors.password = "Your password doesn't meet all the requirements below";
     if (!acceptedTerms) nextErrors.terms = "Accept the terms to continue";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -60,12 +77,16 @@ export default function SignUpScreen({ navigation }: Props) {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.screen}
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
       <View style={styles.hero}>
+        <BackButton onPress={() => navigation.navigate("Welcome")} topOffset={insets.top + 16} />
         <View style={styles.logoTile}>
           <View style={styles.brandPin}><View style={styles.brandPinHole} /></View>
           <View style={styles.logoRoad} />
@@ -87,12 +108,18 @@ export default function SignUpScreen({ navigation }: Props) {
           <View style={styles.field}>
             <Text style={styles.label}>First name</Text>
             <TextInput
-              style={[styles.input, errors.firstName && styles.inputError]}
+              ref={firstNameRef}
+              style={[styles.input, focusedField === "firstName" && styles.inputFocused, errors.firstName && styles.inputError]}
               value={firstName}
               onChangeText={(value) => {
                 setFirstName(value);
                 if (errors.firstName) setErrors((current) => ({ ...current, firstName: undefined }));
               }}
+              onFocus={() => {
+                setFocusedField("firstName");
+                scrollToInput(firstNameRef);
+              }}
+              onBlur={() => setFocusedField(null)}
               placeholder="First name"
               placeholderTextColor="#8b95a5"
               autoCapitalize="words"
@@ -107,12 +134,17 @@ export default function SignUpScreen({ navigation }: Props) {
             <Text style={styles.label}>Last name</Text>
             <TextInput
               ref={lastNameRef}
-              style={[styles.input, errors.lastName && styles.inputError]}
+              style={[styles.input, focusedField === "lastName" && styles.inputFocused, errors.lastName && styles.inputError]}
               value={lastName}
               onChangeText={(value) => {
                 setLastName(value);
                 if (errors.lastName) setErrors((current) => ({ ...current, lastName: undefined }));
               }}
+              onFocus={() => {
+                setFocusedField("lastName");
+                scrollToInput(lastNameRef);
+              }}
+              onBlur={() => setFocusedField(null)}
               placeholder="Last name"
               placeholderTextColor="#8b95a5"
               autoCapitalize="words"
@@ -127,12 +159,17 @@ export default function SignUpScreen({ navigation }: Props) {
             <Text style={styles.label}>Phone number</Text>
             <TextInput
               ref={phoneRef}
-              style={[styles.input, errors.phoneNumber && styles.inputError]}
+              style={[styles.input, focusedField === "phoneNumber" && styles.inputFocused, errors.phoneNumber && styles.inputError]}
               value={phoneNumber}
               onChangeText={(value) => {
                 setPhoneNumber(value);
                 if (errors.phoneNumber) setErrors((current) => ({ ...current, phoneNumber: undefined }));
               }}
+              onFocus={() => {
+                setFocusedField("phoneNumber");
+                scrollToInput(phoneRef);
+              }}
+              onBlur={() => setFocusedField(null)}
               placeholder="+1234567890"
               placeholderTextColor="#8b95a5"
               autoCapitalize="none"
@@ -148,12 +185,17 @@ export default function SignUpScreen({ navigation }: Props) {
             <Text style={styles.label}>Email address</Text>
             <TextInput
               ref={emailRef}
-              style={[styles.input, errors.email && styles.inputError]}
+              style={[styles.input, focusedField === "email" && styles.inputFocused, errors.email && styles.inputError]}
               value={email}
               onChangeText={(value) => {
                 setEmail(value);
                 if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
               }}
+              onFocus={() => {
+                setFocusedField("email");
+                scrollToInput(emailRef);
+              }}
+              onBlur={() => setFocusedField(null)}
               placeholder="you@example.com"
               placeholderTextColor="#8b95a5"
               autoCapitalize="none"
@@ -167,7 +209,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
-            <View style={[styles.passwordInput, errors.password && styles.inputError]}>
+            <View style={[styles.passwordInput, focusedField === "password" && styles.inputFocused, errors.password && styles.inputError]}>
               <TextInput
                 ref={passwordRef}
                 style={styles.passwordTextInput}
@@ -176,6 +218,11 @@ export default function SignUpScreen({ navigation }: Props) {
                   setPassword(value);
                   if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
                 }}
+                onFocus={() => {
+                  setFocusedField("password");
+                  scrollToInput(passwordRef);
+                }}
+                onBlur={() => setFocusedField(null)}
                 placeholder="At least 8 characters"
                 placeholderTextColor="#8b95a5"
                 autoCapitalize="none"
@@ -188,6 +235,21 @@ export default function SignUpScreen({ navigation }: Props) {
               </Pressable>
             </View>
             {errors.password ? <Text style={styles.errorText} selectable>{errors.password}</Text> : null}
+            {focusedField === "password" || password.length > 0 ? (
+              <View style={styles.requirements}>
+                {PASSWORD_REQUIREMENTS.map((requirement) => {
+                  const met = requirement.test(password);
+                  return (
+                    <View key={requirement.key} style={styles.requirementRow}>
+                      <View style={[styles.requirementDot, met && styles.requirementDotMet]}>
+                        {met ? <Text style={styles.requirementCheck}>{"✓"}</Text> : null}
+                      </View>
+                      <Text style={[styles.requirementText, met && styles.requirementTextMet]}>{requirement.label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -231,7 +293,7 @@ export default function SignUpScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.wash },
   content: { flexGrow: 1 },
-  hero: { minHeight: 250, backgroundColor: "#eef8f6", alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 30, gap: 16 },
+  hero: { minHeight: 250, backgroundColor: colors.heroTint, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 30, gap: 16 },
   logoTile: { width: 92, height: 92, borderRadius: 24, borderCurve: "continuous", backgroundColor: colors.navy, overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 24px rgba(3,28,58,0.16)" },
   brandPin: { width: 40, height: 40, borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: "#65e5c2", transform: [{ rotate: "45deg" }], alignItems: "center", justifyContent: "center", zIndex: 2 },
   brandPinHole: { width: 13, height: 13, borderRadius: 7, backgroundColor: colors.navy },
@@ -251,6 +313,23 @@ const styles = StyleSheet.create({
   passwordInput: { height: 54, backgroundColor: colors.wash, borderWidth: 1.5, borderColor: colors.line, borderRadius: radii.md, borderCurve: "continuous", paddingLeft: 16, paddingRight: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   passwordTextInput: { flex: 1, height: "100%", color: colors.ink, fontSize: 16 },
   showPassword: { color: colors.navy, fontSize: 13, fontWeight: "800" },
+  requirements: { marginTop: 10, gap: 8 },
+  requirementRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  requirementDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requirementDotMet: { backgroundColor: colors.success, borderColor: colors.success },
+  requirementCheck: { color: colors.surface, fontSize: 10, fontWeight: "900", lineHeight: 11 },
+  requirementText: { color: colors.muted, fontSize: 12, fontWeight: "600" },
+  requirementTextMet: { color: colors.success, fontWeight: "800" },
+  inputFocused: { borderColor: colors.navy, backgroundColor: colors.surface, boxShadow: "0 0 0 3px rgba(3,28,58,0.08)" },
   inputError: { borderColor: colors.danger, backgroundColor: "#fff8f8" },
   errorText: { color: colors.danger, fontSize: 12, lineHeight: 16 },
   termsGroup: { gap: 7 },

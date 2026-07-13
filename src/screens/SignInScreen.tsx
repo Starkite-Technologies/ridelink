@@ -8,6 +8,9 @@ import {
   View,
 } from "react-native";
 import { Text, TextInput } from "../components/Typography";
+import BackButton from "../components/BackButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardAwareScroll } from "../hooks/useKeyboardAwareScroll";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
 import { useAuth } from "../auth/AuthContext";
@@ -19,12 +22,16 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen({ navigation }: Props) {
   const { signIn } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { scrollRef, handleScroll, scrollToInput } = useKeyboardAwareScroll();
+  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [focusedField, setFocusedField] = useState<"email" | "password" | null>(null);
 
   const handleSignIn = async () => {
     const cleanEmail = email.trim().toLowerCase();
@@ -47,12 +54,16 @@ export default function SignInScreen({ navigation }: Props) {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.screen}
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
       <View style={styles.hero}>
+        <BackButton onPress={() => navigation.navigate("Welcome")} topOffset={insets.top + 16} />
         <View style={styles.heroBrand}>
           <View style={styles.logoTile}>
             <View style={styles.brandPin}><View style={styles.brandPinHole} /></View>
@@ -76,12 +87,18 @@ export default function SignInScreen({ navigation }: Props) {
           <View style={styles.field}>
             <Text style={styles.label}>Email address</Text>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
+              ref={emailRef}
+              style={[styles.input, focusedField === "email" && styles.inputFocused, errors.email && styles.inputError]}
               value={email}
               onChangeText={(value) => {
                 setEmail(value);
                 if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
               }}
+              onFocus={() => {
+                setFocusedField("email");
+                scrollToInput(emailRef);
+              }}
+              onBlur={() => setFocusedField(null)}
               placeholder="you@example.com"
               placeholderTextColor="#8b95a5"
               autoCapitalize="none"
@@ -95,7 +112,7 @@ export default function SignInScreen({ navigation }: Props) {
 
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
-            <View style={[styles.passwordInput, errors.password && styles.inputError]}>
+            <View style={[styles.passwordInput, focusedField === "password" && styles.inputFocused, errors.password && styles.inputError]}>
               <TextInput
                 ref={passwordRef}
                 style={styles.passwordTextInput}
@@ -104,6 +121,11 @@ export default function SignInScreen({ navigation }: Props) {
                   setPassword(value);
                   if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
                 }}
+                onFocus={() => {
+                  setFocusedField("password");
+                  scrollToInput(passwordRef);
+                }}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter your password"
                 placeholderTextColor="#8b95a5"
                 autoCapitalize="none"
@@ -142,7 +164,7 @@ export default function SignInScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.wash },
   content: { flexGrow: 1 },
-  hero: { minHeight: 250, backgroundColor: "#eef8f6", alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 30, gap: 16 },
+  hero: { minHeight: 250, backgroundColor: colors.heroTint, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 30, gap: 16 },
   heroBrand: { alignItems: "center", justifyContent: "center" },
   logoTile: { width: 92, height: 92, borderRadius: 24, borderCurve: "continuous", backgroundColor: colors.navy, overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 24px rgba(3,28,58,0.16)" },
   brandPin: { width: 40, height: 40, borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: "#65e5c2", transform: [{ rotate: "45deg" }], alignItems: "center", justifyContent: "center", zIndex: 2 },
@@ -163,6 +185,7 @@ const styles = StyleSheet.create({
   passwordInput: { height: 54, backgroundColor: colors.wash, borderWidth: 1.5, borderColor: colors.line, borderRadius: radii.md, borderCurve: "continuous", paddingLeft: 16, paddingRight: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   passwordTextInput: { flex: 1, height: "100%", color: colors.ink, fontSize: 16 },
   showPassword: { color: colors.navy, fontSize: 13, fontWeight: "800" },
+  inputFocused: { borderColor: colors.navy, backgroundColor: colors.surface, boxShadow: "0 0 0 3px rgba(3,28,58,0.08)" },
   inputError: { borderColor: colors.danger, backgroundColor: "#fff8f8" },
   errorText: { color: colors.danger, fontSize: 12, lineHeight: 16 },
   signInButton: { height: 56, backgroundColor: colors.success, borderRadius: radii.md, borderCurve: "continuous", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(20,184,122,0.2)" },

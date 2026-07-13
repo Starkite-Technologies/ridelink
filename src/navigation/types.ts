@@ -1,5 +1,6 @@
 export type ProfileStackParamList = {
   ProfileHome: undefined;
+  Welcome: undefined;
   SignIn: undefined;
   SignUp: undefined;
   ConfirmSignUp: { email: string };
