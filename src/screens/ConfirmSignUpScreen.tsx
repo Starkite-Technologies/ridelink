@@ -70,6 +70,9 @@ export default function ConfirmSignUpScreen({ route, navigation }: Props) {
             placeholder="123456"
             placeholderTextColor="#8b95a5"
             keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            importantForAutofill="yes"
             autoFocus
           />
         </View>
