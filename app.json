@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -16,6 +16,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -23,7 +24,21 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow RideLink to share your location only while you operate an active passenger trip."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "RideLink uses your photos for Driver identity and vehicle verification.",
+          "cameraPermission": "RideLink uses your camera for Driver selfie and vehicle verification.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

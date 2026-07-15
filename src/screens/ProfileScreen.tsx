@@ -1,204 +1,57 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "../components/Typography";
+import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { ProfileStackParamList } from "../navigation/types";
+import { EnvelopeSimple, IdentificationCard, Moon, Phone, SignOut, SteeringWheel, Sun, User, UsersThree } from "../components/icons";
 import { useAuth } from "../auth/AuthContext";
-import { colors, radii, shadow } from "../theme";
+import { Text } from "../components/Typography";
+import type { ProfileStackParamList } from "../navigation/types";
+import { colors } from "../theme";
+import { useAppTheme } from "../theme-context";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "ProfileHome">;
 
-type MenuItem = {
-  key: string;
-  label: string;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-};
-
-const MENU: MenuItem[] = [
-  { key: "trips", label: "My trips", icon: "TR", iconBg: colors.wash, iconColor: colors.navy },
-  { key: "bookings", label: "My bookings", icon: "BK", iconBg: colors.successWash, iconColor: colors.success },
-  { key: "payments", label: "Payment methods", icon: "PM", iconBg: colors.warningWash, iconColor: colors.warning },
-  { key: "settings", label: "Settings", icon: "ST", iconBg: colors.wash, iconColor: colors.navy },
-  { key: "support", label: "Help & support", icon: "HS", iconBg: colors.successWash, iconColor: colors.success },
-];
-
 export default function ProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { email, firstName, lastName, phoneNumber, isSignedIn, signOut } = useAuth();
-  const displayName = [firstName, lastName].filter(Boolean).join(" ") || email?.split("@")[0] || "RideLink member";
+  const { email, firstName, lastName, phoneNumber, isSignedIn, accountType, signOut } = useAuth();
+  const { mode, toggleMode } = useAppTheme();
+  const previewRole = process.env.EXPO_OS === "web" && __DEV__ && typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("previewRole") : null;
+  const isDriver = (previewRole ?? accountType) === "DRIVER";
+  const displayName = [firstName, lastName].filter(Boolean).join(" ") || email?.split("@")[0] || (isDriver ? "RideLink driver" : "RideLink passenger");
+  return <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: insets.top + 18 }]} contentInsetAdjustmentBehavior="never">
+    <Text style={styles.eyebrow}>{isDriver ? "DRIVER ACCOUNT" : "PASSENGER ACCOUNT"}</Text>
+    <Text style={styles.title}>Your account</Text>
+    <View style={styles.identityCard}>
+      <View style={styles.avatar}><Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text></View>
+      <View style={styles.identityCopy}><Text style={styles.name}>{displayName}</Text><Text style={styles.email} numberOfLines={1}>{email || "Preview account"}</Text></View>
+      <View style={styles.roleIcon}>{isDriver ? <SteeringWheel size={22} color={colors.success} weight="fill" /> : <UsersThree size={22} color={colors.success} weight="fill" />}</View>
+    </View>
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
-      <View style={[styles.hero, { paddingTop: insets.top + 20 }]}>
-        <View style={styles.heroTopRow}>
-          <Text style={styles.heroLabel}>PROFILE</Text>
-          {isSignedIn ? (
-            <Pressable hitSlop={10} style={styles.editButton}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </Pressable>
-          ) : null}
-        </View>
+    <View style={styles.roleCard}>
+      <View style={styles.roleHeader}><IdentificationCard size={20} color={colors.success} weight="fill" /><Text style={styles.roleTitle}>{isDriver ? "Driver access" : "Passenger access"}</Text></View>
+      <Text style={styles.roleBody}>{isDriver ? "This login is dedicated to publishing trips, managing passengers, vehicles, and earnings." : "This login is dedicated to searching routes, booking seats, and keeping your travel tickets."}</Text>
+      <View style={styles.lockedBadge}><Text style={styles.lockedText}>ACCOUNT TYPE LOCKED</Text></View>
+    </View>
 
-        <View style={styles.profileRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={styles.identity}>
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.email}>{isSignedIn ? email : "Sign in to unlock your account"}</Text>
-            {phoneNumber ? <Text style={styles.phone}>{phoneNumber}</Text> : null}
-          </View>
-        </View>
+    <Text style={styles.sectionTitle}>Account details</Text>
+    <View style={styles.detailsCard}>
+      <Detail icon={User} label="Full name" value={displayName} />
+      <Detail icon={EnvelopeSimple} label="Email" value={email || "Not available"} />
+      <Detail icon={Phone} label="Phone" value={phoneNumber || "Not provided"} last />
+    </View>
 
-        {isSignedIn ? (
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>Trips taken</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>—</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>New</Text>
-              <Text style={styles.statLabel}>Member since</Text>
-            </View>
-          </View>
-        ) : null}
-      </View>
+    <Text style={styles.sectionTitle}>Appearance</Text>
+    <View style={styles.themeCard}><View style={styles.themeIcon}>{mode === "dark" ? <Moon size={19} color={colors.success} weight="fill" /> : <Sun size={19} color={colors.warning} weight="fill" />}</View><View style={styles.themeCopy}><Text style={styles.themeTitle}>Blue dark mode</Text><Text style={styles.themeBody}>Turn this off when you want the light interface.</Text></View><Switch accessibilityLabel="Blue dark mode" value={mode === "dark"} onValueChange={() => void toggleMode()} trackColor={{ false: colors.line, true: colors.success }} thumbColor={mode === "dark" ? colors.navy : colors.surface} /></View>
 
-      <View style={styles.body}>
-        {isSignedIn ? (
-          <>
-            <View style={styles.menu}>
-              {MENU.map((item, index) => (
-                <Pressable
-                  key={item.key}
-                  style={[styles.menuRow, index === MENU.length - 1 && styles.menuRowLast]}
-                >
-                  <View style={[styles.menuIcon, { backgroundColor: item.iconBg }]}>
-                    <Text style={[styles.menuIconText, { color: item.iconColor }]}>{item.icon}</Text>
-                  </View>
-                  <Text style={styles.menuText}>{item.label}</Text>
-                  <Text style={styles.chevron}>{">"}</Text>
-                </Pressable>
-              ))}
-            </View>
+    {isSignedIn ? <Pressable accessibilityRole="button" style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} onPress={signOut}><SignOut size={19} color="#ff8f8f" weight="bold" /><Text style={styles.signOutText}>Sign out of RideLink</Text></Pressable> : <Pressable style={styles.signOutButton} onPress={() => navigation.navigate("SignIn")}><Text style={styles.signOutText}>Return to sign in</Text></Pressable>}
+    <Text style={styles.version}>RideLink 1.0.0 · {isDriver ? "Driver" : "Passenger"}</Text>
+  </ScrollView>;
+}
 
-            <Pressable style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} onPress={signOut}>
-              <Text style={styles.signOutText}>Sign out</Text>
-            </Pressable>
-
-            <Text style={styles.version}>RideLink v1.0.0</Text>
-          </>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Travel together. Go further.</Text>
-            <Text style={styles.cardText}>Create an account to post trips, book seats, and manage your rides.</Text>
-            <Pressable style={({ pressed }) => [styles.button, pressed && styles.pressed]} onPress={() => navigation.navigate("SignIn")}>
-              <Text style={styles.buttonText}>Sign in</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-    </ScrollView>
-  );
+type IconComponent = typeof User;
+function Detail({ icon: Icon, label, value, last }: { icon: IconComponent; label: string; value: string; last?: boolean }) {
+  return <View style={[styles.detail, last && styles.detailLast]}><View style={styles.detailIcon}><Icon size={17} color={colors.muted} /></View><View style={styles.detailCopy}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue} numberOfLines={1}>{value}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.wash },
-  content: { paddingBottom: 36 },
-  hero: {
-    backgroundColor: colors.navy,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: radii.xl,
-    borderBottomRightRadius: radii.xl,
-    borderCurve: "continuous",
-    gap: 20,
-  },
-  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heroLabel: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "900", letterSpacing: 1.6 },
-  editButton: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    borderRadius: radii.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  editButtonText: { color: colors.surface, fontSize: 12, fontWeight: "800" },
-  profileRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.success,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.24)",
-  },
-  avatarText: { color: colors.navy, fontSize: 24, fontWeight: "900" },
-  identity: { flex: 1, gap: 2 },
-  name: { color: colors.surface, fontSize: 19, fontWeight: "900" },
-  email: { color: "rgba(255,255,255,0.72)", fontSize: 13 },
-  phone: { color: "rgba(255,255,255,0.72)", fontSize: 13 },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: radii.lg,
-    borderCurve: "continuous",
-    paddingVertical: 16,
-  },
-  stat: { flex: 1, alignItems: "center", gap: 4 },
-  statValue: { color: colors.surface, fontSize: 17, fontWeight: "900" },
-  statLabel: { color: "rgba(255,255,255,0.62)", fontSize: 11, fontWeight: "700" },
-  statDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.16)" },
-  body: { paddingHorizontal: 18, paddingTop: 20, gap: 18 },
-  menu: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    borderColor: colors.line,
-    overflow: "hidden",
-    ...shadow,
-  },
-  menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  menuRowLast: { borderBottomWidth: 0 },
-  menuIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  menuIconText: { fontSize: 11, fontWeight: "900" },
-  menuText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "700" },
-  chevron: { color: colors.muted, fontSize: 16, fontWeight: "800" },
-  signOutButton: {
-    alignItems: "center",
-    paddingVertical: 15,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  signOutText: { color: colors.danger, fontSize: 15, fontWeight: "800" },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
-  version: { textAlign: "center", color: colors.muted, fontSize: 12, marginTop: 4 },
-  card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderCurve: "continuous", padding: 20, gap: 12, ...shadow },
-  cardTitle: { color: colors.ink, fontSize: 22, fontWeight: "800" },
-  cardText: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  button: { marginTop: 8, backgroundColor: colors.navy, borderRadius: radii.md, borderCurve: "continuous", paddingVertical: 15, alignItems: "center" },
-  buttonText: { color: colors.surface, fontSize: 16, fontWeight: "800" },
+  screen: { flex: 1, backgroundColor: colors.wash }, content: { paddingHorizontal: 19, paddingBottom: 34, gap: 16 }, eyebrow: { color: colors.success, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 }, title: { color: colors.ink, fontSize: 29, fontWeight: "800", letterSpacing: -1 }, identityCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }, avatar: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.success }, avatarText: { color: colors.navy, fontSize: 22, fontWeight: "800" }, identityCopy: { flex: 1, gap: 3 }, name: { color: colors.ink, fontSize: 16, fontWeight: "800" }, email: { color: colors.muted, fontSize: 9 }, roleIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.successWash }, roleCard: { gap: 9, padding: 16, borderRadius: 21, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.success }, roleHeader: { flexDirection: "row", alignItems: "center", gap: 8 }, roleTitle: { color: colors.ink, fontSize: 13, fontWeight: "800" }, roleBody: { color: colors.muted, fontSize: 10, lineHeight: 16 }, lockedBadge: { alignSelf: "flex-start", borderRadius: 99, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: colors.successWash }, lockedText: { color: colors.success, fontSize: 7, fontWeight: "800", letterSpacing: 0.7 }, sectionTitle: { color: colors.ink, fontSize: 15, fontWeight: "800", marginTop: 2 }, detailsCard: { borderRadius: 21, paddingHorizontal: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }, detail: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderBottomWidth: 1, borderBottomColor: colors.line }, detailLast: { borderBottomWidth: 0 }, detailIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.wash }, detailCopy: { flex: 1, gap: 3 }, detailLabel: { color: colors.muted, fontSize: 8, fontWeight: "700" }, detailValue: { color: colors.ink, fontSize: 11, fontWeight: "700" }, themeCard: { minHeight: 72, borderRadius: 19, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }, themeIcon: { width: 41, height: 41, borderRadius: 13, backgroundColor: colors.successWash, alignItems: "center", justifyContent: "center" }, themeCopy: { flex: 1, gap: 3 }, themeTitle: { color: colors.ink, fontSize: 11, fontWeight: "800" }, themeBody: { color: colors.muted, fontSize: 8, lineHeight: 12 }, signOutButton: { minHeight: 52, borderRadius: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, backgroundColor: colors.dangerWash, borderWidth: 1, borderColor: "rgba(255,143,143,0.2)" }, signOutText: { color: "#ff8f8f", fontSize: 11, fontWeight: "800" }, version: { color: colors.muted, fontSize: 8, textAlign: "center" }, pressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
 });

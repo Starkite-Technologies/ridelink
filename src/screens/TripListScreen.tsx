@@ -69,7 +69,8 @@ export default function TripListScreen({ navigation }: Props) {
           <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
             <View style={styles.titleRow}>
               <View>
-                <Text style={styles.title}>Trips</Text>
+                <View style={styles.workspaceLabel}><View style={styles.workspaceDot} /><Text style={styles.workspaceText}>PASSENGER WORKSPACE</Text></View>
+                <Text style={styles.title}>Local rides</Text>
                 <Text style={styles.subtitle}>Find your next ride</Text>
               </View>
               <View style={styles.searchButton}>
@@ -138,6 +139,9 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 24, gap: 12 },
   header: { gap: 16, paddingBottom: 4 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  workspaceLabel: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 3 },
+  workspaceDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
+  workspaceText: { color: colors.success, fontSize: 8, fontWeight: "900", letterSpacing: 0.8 },
   title: { color: colors.ink, fontSize: 28, fontWeight: "800" },
   subtitle: { color: colors.muted, fontSize: 13, marginTop: 2 },
   searchButton: {

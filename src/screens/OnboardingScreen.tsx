@@ -111,7 +111,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 18 }]}>
       <View style={styles.topBar}>
-        <View style={styles.wordmarkRow}><View style={styles.miniPin} /><Text style={styles.wordmark}>RIDELINK</Text></View>
+        <View style={styles.wordmarkRow}><Image source={require("../../assets/favicon.png")} style={styles.brandLogo} /><Text style={styles.wordmark}>RideLink</Text></View>
         <Pressable hitSlop={12} onPress={finish}><Text style={styles.skipText}>Skip</Text></Pressable>
       </View>
       <FlatList
@@ -147,15 +147,15 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.navy },
   topBar: { height: 64, paddingHorizontal: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   wordmarkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  miniPin: { width: 14, height: 18, borderRadius: 9, borderBottomRightRadius: 2, backgroundColor: colors.success, transform: [{ rotate: "45deg" }] },
-  wordmark: { color: colors.navy, fontSize: 16, fontWeight: "900", letterSpacing: 1.4 },
-  skipText: { color: colors.navySoft, fontSize: 15, fontWeight: "700" },
+  brandLogo: { width: 34, height: 34, borderRadius: 11 },
+  wordmark: { color: colors.surface, fontSize: 17, fontWeight: "800", letterSpacing: -0.4 },
+  skipText: { color: colors.success, fontSize: 13, fontWeight: "700" },
   slide: { paddingHorizontal: 24, justifyContent: "center", gap: 38 },
-  artboard: { height: 350, borderRadius: 28, borderCurve: "continuous", backgroundColor: "#eaf4f7", overflow: "hidden" },
-  onboardingImage: { width: "100%", height: "100%", backgroundColor: colors.surface },
+  artboard: { height: 350, borderRadius: 28, borderCurve: "continuous", backgroundColor: colors.navySoft, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  onboardingImage: { width: "100%", height: "100%" },
   cloud: { position: "absolute", width: 66, height: 18, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.92)" },
   city: { position: "absolute", left: 0, right: 0, bottom: 55, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", paddingHorizontal: 30 },
   building: { width: 42, backgroundColor: "#c9dce7", borderTopLeftRadius: 5, borderTopRightRadius: 5 },
@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
   checkText: { color: colors.surface, fontSize: 34, fontWeight: "800" },
   copy: { alignItems: "center", gap: 10, paddingHorizontal: 12 },
   eyebrow: { color: colors.success, fontSize: 12, fontWeight: "900", letterSpacing: 1.5 },
-  title: { color: colors.ink, fontSize: 32, lineHeight: 42, fontWeight: "900", textAlign: "center" },
-  bodyText: { color: colors.muted, fontSize: 16, lineHeight: 24, textAlign: "center", maxWidth: 330 },
+  title: { color: colors.surface, fontSize: 32, lineHeight: 42, fontWeight: "900", textAlign: "center" },
+  bodyText: { color: "rgba(255,255,255,0.58)", fontSize: 15, lineHeight: 23, textAlign: "center", maxWidth: 330 },
   bottom: { paddingHorizontal: 24, gap: 22 },
   dots: { height: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#d5dce5" },
-  activeDot: { width: 26, backgroundColor: colors.navy },
-  primaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", backgroundColor: colors.navy, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
-  primaryButtonText: { color: colors.surface, fontSize: 16, fontWeight: "800" },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.18)" },
+  activeDot: { width: 26, backgroundColor: colors.success },
+  primaryButton: { minHeight: 56, borderRadius: radii.md, borderCurve: "continuous", backgroundColor: colors.success, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
+  primaryButtonText: { color: colors.navy, fontSize: 16, fontWeight: "800" },
   pressed: { opacity: 0.84, transform: [{ scale: 0.99 }] },
 });

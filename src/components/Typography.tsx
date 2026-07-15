@@ -6,6 +6,7 @@ import {
   type TextInputProps,
   type TextProps,
 } from "react-native";
+import { colors } from "../theme";
 
 const fontForWeight = (weight: TextProps["style"] extends infer _ ? string | number | undefined : never) => {
   const numericWeight = typeof weight === "string" ? Number.parseInt(weight, 10) : weight;
@@ -17,8 +18,10 @@ const fontForWeight = (weight: TextProps["style"] extends infer _ ? string | num
 };
 
 export const Text = forwardRef<NativeText, TextProps>(({ style, ...props }, ref) => {
-  const weight = StyleSheet.flatten(style)?.fontWeight;
-  return <NativeText ref={ref} {...props} style={[style, { fontFamily: fontForWeight(weight), fontWeight: "normal" }]} />;
+  const flattened = StyleSheet.flatten(style);
+  const weight = flattened?.fontWeight;
+  const foreground = flattened?.color === colors.surface ? colors.onBrand : undefined;
+  return <NativeText ref={ref} {...props} style={[style, foreground ? { color: foreground } : null, { fontFamily: fontForWeight(weight), fontWeight: "normal" }]} />;
 });
 
 Text.displayName = "RideLinkText";
@@ -26,8 +29,10 @@ Text.displayName = "RideLinkText";
 export type TextInput = NativeTextInput;
 
 export const TextInput = forwardRef<NativeTextInput, TextInputProps>(({ style, ...props }, ref) => {
-  const weight = StyleSheet.flatten(style)?.fontWeight;
-  return <NativeTextInput ref={ref} {...props} style={[style, { fontFamily: fontForWeight(weight), fontWeight: "normal" }]} />;
+  const flattened = StyleSheet.flatten(style);
+  const weight = flattened?.fontWeight;
+  const foreground = flattened?.color === colors.surface ? colors.onBrand : undefined;
+  return <NativeTextInput ref={ref} {...props} style={[style, foreground ? { color: foreground } : null, { fontFamily: fontForWeight(weight), fontWeight: "normal" }]} />;
 });
 
 TextInput.displayName = "RideLinkTextInput";

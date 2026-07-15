@@ -1,39 +1,16 @@
 import { Pressable, StyleSheet } from "react-native";
-import { Text } from "./Typography";
+import { CaretLeft } from "./icons";
 import { colors } from "../theme";
 
-type Props = {
-  onPress: () => void;
-  topOffset?: number;
-};
-
-export default function BackButton({ onPress, topOffset = 16 }: Props) {
+export default function BackButton({ onPress, topOffset = 16 }: { onPress: () => void; topOffset?: number }) {
   return (
-    <Pressable
-      hitSlop={12}
-      onPress={onPress}
-      style={({ pressed }) => [styles.button, { top: topOffset }, pressed && styles.pressed]}
-      accessibilityRole="button"
-      accessibilityLabel="Back"
-    >
-      <Text style={styles.chevron}>{"‹"}</Text>
+    <Pressable hitSlop={12} onPress={onPress} style={({ pressed }) => [styles.button, { top: topOffset }, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Back">
+      <CaretLeft size={20} color={colors.onBrand} weight="bold" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    position: "absolute",
-    left: 16,
-    zIndex: 1,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 6px 14px rgba(3,28,58,0.12)",
-  },
-  pressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
-  chevron: { color: colors.navy, fontSize: 22, fontWeight: "900", marginRight: 1 },
+  button: { position: "absolute", left: 16, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.08)", borderWidth: 1, borderColor: "rgba(255,255,255,.16)", alignItems: "center", justifyContent: "center" },
+  pressed: { opacity: .8, transform: [{ scale: .96 }] },
 });
