@@ -98,7 +98,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
   const next = () => {
     if (index < SLIDES.length - 1) {
-      listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+      const nextIndex = index + 1;
+      listRef.current?.scrollToOffset({ offset: nextIndex * width, animated: false });
+      setIndex(nextIndex);
       return;
     }
     finish();
@@ -122,7 +124,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
         pagingEnabled
         bounces={false}
         showsHorizontalScrollIndicator={false}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         onMomentumScrollEnd={handleScroll}
+        onScrollEndDrag={handleScroll}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
             <Illustration type={item.art} />

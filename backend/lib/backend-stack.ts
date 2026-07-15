@@ -4,6 +4,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
@@ -29,6 +30,31 @@ export class BackendStack extends cdk.Stack {
       indexName: 'byRider',
       partitionKey: { name: 'riderId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+    });
+
+    const vehiclesTable = new dynamodb.Table(this, 'VehiclesTable', {
+      partitionKey: { name: 'vehicleId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+    vehiclesTable.addGlobalSecondaryIndex({
+      indexName: 'byOwner',
+      partitionKey: { name: 'ownerId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+    });
+
+    // --- S3 bucket for vehicle photos (public-read; uploads via presigned PUT) ---
+    const vehiclePhotosBucket = new s3.Bucket(this, 'VehiclePhotosBucket', {
+      publicReadAccess: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.PUT],
+          allowedOrigins: ['*'],
+          allowedHeaders: ['*'],
+        },
+      ],
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     // --- Cognito user pool (auth for drivers/riders) ---
@@ -65,6 +91,9 @@ export class BackendStack extends cdk.Stack {
     const commonEnv = {
       TRIPS_TABLE: tripsTable.tableName,
       BOOKINGS_TABLE: bookingsTable.tableName,
+      VEHICLES_TABLE: vehiclesTable.tableName,
+      VEHICLE_PHOTOS_BUCKET: vehiclePhotosBucket.bucketName,
+      VEHICLE_PHOTOS_BUCKET_DOMAIN: vehiclePhotosBucket.bucketDomainName,
     };
 
     const makeFn = (name: string, entry: string) =>
@@ -80,6 +109,10 @@ export class BackendStack extends cdk.Stack {
     const createTripFn = makeFn('CreateTripFn', 'createTrip.ts');
     const createBookingFn = makeFn('CreateBookingFn', 'createBooking.ts');
     const listBookingsFn = makeFn('ListBookingsFn', 'listBookings.ts');
+    const createVehicleFn = makeFn('CreateVehicleFn', 'createVehicle.ts');
+    const listVehiclesFn = makeFn('ListVehiclesFn', 'listVehicles.ts');
+    const deleteVehicleFn = makeFn('DeleteVehicleFn', 'deleteVehicle.ts');
+    const vehiclePhotoUploadUrlFn = makeFn('VehiclePhotoUploadUrlFn', 'vehiclePhotoUploadUrl.ts');
 
     tripsTable.grantReadData(listTripsFn);
     tripsTable.grantReadData(getTripFn);
@@ -87,6 +120,11 @@ export class BackendStack extends cdk.Stack {
     tripsTable.grantReadWriteData(createBookingFn);
     bookingsTable.grantReadWriteData(createBookingFn);
     bookingsTable.grantReadData(listBookingsFn);
+    vehiclesTable.grantReadWriteData(createVehicleFn);
+    vehiclesTable.grantReadData(listVehiclesFn);
+    vehiclesTable.grantReadWriteData(deleteVehicleFn);
+    vehiclesTable.grantReadData(createTripFn);
+    vehiclePhotosBucket.grantPut(vehiclePhotoUploadUrlFn);
 
     // --- HTTP API ---
     const authorizer = new authorizers.HttpUserPoolAuthorizer('UserPoolAuthorizer', userPool, {
@@ -96,7 +134,12 @@ export class BackendStack extends cdk.Stack {
     const httpApi = new apigwv2.HttpApi(this, 'TripsHttpApi', {
       corsPreflight: {
         allowOrigins: ['*'],
-        allowMethods: [apigwv2.CorsHttpMethod.GET, apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.OPTIONS],
+        allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
+          apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.DELETE,
+          apigwv2.CorsHttpMethod.OPTIONS,
+        ],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
@@ -130,6 +173,32 @@ export class BackendStack extends cdk.Stack {
       path: '/bookings',
       methods: [apigwv2.HttpMethod.GET],
       integration: new integrations.HttpLambdaIntegration('ListBookingsIntegration', listBookingsFn),
+      authorizer,
+    });
+
+    // Authenticated: manage my vehicles
+    httpApi.addRoutes({
+      path: '/vehicles',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('CreateVehicleIntegration', createVehicleFn),
+      authorizer,
+    });
+    httpApi.addRoutes({
+      path: '/vehicles',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('ListVehiclesIntegration', listVehiclesFn),
+      authorizer,
+    });
+    httpApi.addRoutes({
+      path: '/vehicles/{vehicleId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteVehicleIntegration', deleteVehicleFn),
+      authorizer,
+    });
+    httpApi.addRoutes({
+      path: '/vehicles/photo-upload-url',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('VehiclePhotoUploadUrlIntegration', vehiclePhotoUploadUrlFn),
       authorizer,
     });
 

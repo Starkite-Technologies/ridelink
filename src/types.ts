@@ -7,5 +7,21 @@ export type Trip = {
   date: string;
   seatsAvailable: number;
   pricePerSeat: number;
+  vehicleId: string;
+  vehicleLabel: string;
+  notes: string;
+  createdAt: string;
+};
+
+export type Vehicle = {
+  vehicleId: string;
+  ownerId: string;
+  make: string;
+  model: string;
+  color: string;
+  year: number | null;
+  plate: string | null;
+  photoUrl: string | null;
+  verified: boolean;
   createdAt: string;
 };

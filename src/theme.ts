@@ -12,8 +12,9 @@ export const colors = {
   warning: "#f4a62a",
   warningWash: "#fff2da",
   danger: "#d53434",
-  dangerWash: "#f4f5f7",
+  dangerWash: "#fbeaea",
   heroTint: "#eef8f6",
+  accent: "#65e5c2",
 };
 
 export const radii = {
