@@ -1,218 +1,26 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Text } from "../components/Typography";
-import { useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { api, type Booking } from "../api/client";
+import { StateView } from "../components/state-view";
+import type { LongRouteBooking } from "../long-routes/types";
+import { formatDateTime, formatNad } from "../long-routes/data";
+import type { BookingsStackParamList } from "../navigation/types";
+import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { colors, radii, shadow } from "../theme";
 
-export default function BookingsScreen() {
-  const { idToken, isSignedIn } = useAuth();
-  const insets = useSafeAreaInsets();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type Props = NativeStackScreenProps<BookingsStackParamList, "BookingsHome">;
+type Tab = "UPCOMING" | "COMPLETED" | "CANCELLED";
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!isSignedIn || !idToken) {
-        setBookings([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      api
-        .listBookings(idToken)
-        .then(setBookings)
-        .catch((err) => setError(err instanceof Error ? err.message : "Failed to load bookings"))
-        .finally(() => setLoading(false));
-    }, [idToken, isSignedIn])
-  );
-
-  if (!isSignedIn) {
-    return (
-      <View style={styles.centered}>
-        <View style={styles.emptyIcon}>
-          <Text style={styles.emptyIconText}>BK</Text>
-        </View>
-        <Text style={styles.emptyTitle}>Sign in to see your bookings</Text>
-        <Text style={styles.empty}>Your upcoming and past trips will show up here.</Text>
-      </View>
-    );
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.navy} />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{error}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <FlatList
-        data={bookings}
-        keyExtractor={(booking) => booking.bookingId}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-            <Text style={styles.title}>My Bookings</Text>
-            <View style={styles.segment}>
-              <Text style={styles.segmentActive}>Upcoming</Text>
-              <Text style={styles.segmentText}>Past</Text>
-            </View>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Text style={styles.emptyIconText}>BK</Text>
-            </View>
-            <Text style={styles.emptyTitle}>No bookings yet</Text>
-            <Text style={styles.empty}>Once you book a seat on a trip, it'll show up here.</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.tripIcon}>
-                <Text style={styles.tripIconText}>TR</Text>
-              </View>
-              <View style={styles.routeBlock}>
-                <Text style={styles.route}>Booking #{item.bookingId.slice(0, 8).toUpperCase()}</Text>
-                <Text style={styles.meta}>{item.createdAt}</Text>
-              </View>
-              <Text style={styles.status}>{item.status}</Text>
-            </View>
-            <View style={styles.details}>
-              <Detail label="Seats" value={`${item.seats}`} />
-              <Detail label="Trip ref" value={item.tripId.slice(0, 8).toUpperCase()} />
-              <Detail label="Payment" value="Confirmed" />
-            </View>
-            <Pressable style={({ pressed }) => [styles.detailButton, pressed && styles.pressed]}>
-              <Text style={styles.detailButtonText}>View details</Text>
-              <Text style={styles.detailButtonArrow}>{"->"}</Text>
-            </Pressable>
-          </View>
-        )}
-      />
-    </View>
-  );
+export default function BookingsScreen({ navigation }: Props) {
+  const { idToken } = useAuth(); const [bookings, setBookings] = useState<LongRouteBooking[]>([]); const [tab, setTab] = useState<Tab>("UPCOMING"); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => { if (!idToken) return; try { setBookings(await api.listLongRouteBookings(idToken)); setError(null); } catch (err) { setError(err instanceof Error ? err.message : "Bookings could not be loaded"); } }, [idToken]);
+  useEffect(() => { void load().finally(() => setLoading(false)); }, [load]);
+  const filtered = useMemo(() => bookings.filter((booking) => tab === "CANCELLED" ? ["CANCELLED", "REFUNDED"].includes(booking.bookingStatus) : tab === "COMPLETED" ? ["COMPLETED", "MISSED"].includes(booking.bookingStatus) : !["CANCELLED", "REFUNDED", "COMPLETED", "MISSED"].includes(booking.bookingStatus)), [bookings, tab]);
+  if (loading) return <View style={styles.centered}><ActivityIndicator color={colors.success} /></View>;
+  if (error) return <StateView title="Bookings unavailable" message={error} actionLabel="Try again" onAction={() => { setLoading(true); void load().finally(() => setLoading(false)); }} />;
+  return <FlatList style={styles.screen} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" data={filtered} keyExtractor={(item) => item.bookingId} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load().finally(() => setRefreshing(false)); }} />} ListHeaderComponent={<View style={styles.header}><Text style={styles.title}>My bookings</Text><Text style={styles.subtitle}>Tickets, payments, cancellations, and trip updates</Text><View style={styles.tabs}>{(["UPCOMING", "COMPLETED", "CANCELLED"] as Tab[]).map((item) => <Pressable key={item} style={[styles.tab, tab === item && styles.tabActive]} onPress={() => setTab(item)}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item.charAt(0) + item.slice(1).toLowerCase()}</Text></Pressable>)}</View></View>} ListEmptyComponent={<StateView title={`No ${tab.toLowerCase()} bookings`} message={tab === "UPCOMING" ? "Your confirmed long-route trips will appear here." : "There are no bookings in this section."} />} renderItem={({ item }) => <Pressable style={styles.card} onPress={() => navigation.navigate("BookingDetail", { bookingId: item.bookingId })}><View style={styles.cardHeader}><View style={{ flex: 1 }}><Text style={styles.route}>{item.tripSnapshot.departureTown} to {item.tripSnapshot.destinationTown}</Text><Text style={styles.meta}>{formatDateTime(item.tripSnapshot.departureDateTime)}</Text></View><Text style={styles.status}>{item.bookingStatus.replace(/_/g, " ")}</Text></View><View style={styles.details}><Detail label="Seats" value={item.seatNumbers.join(", ")} /><Detail label="Operator" value={item.tripSnapshot.operatorName} /><Detail label="Total" value={formatNad(item.totalAmount)} /></View><View style={styles.footer}><Text style={styles.reference} selectable>{item.bookingReference}</Text><Text style={styles.payment}>{item.paymentStatus.replace(/_/g, " ")}</Text></View></Pressable>} />;
 }
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.detail}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.wash },
-  centered: { flex: 1, backgroundColor: colors.wash, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 6 },
-  error: { color: colors.danger },
-  list: { padding: 16, gap: 12, flexGrow: 1 },
-  header: { gap: 18, paddingBottom: 4 },
-  title: { color: colors.ink, fontSize: 24, fontWeight: "800" },
-  segment: {
-    alignSelf: "center",
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderCurve: "continuous",
-    padding: 4,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  segmentActive: {
-    backgroundColor: colors.navy,
-    color: colors.surface,
-    borderRadius: radii.sm,
-    borderCurve: "continuous",
-    overflow: "hidden",
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    fontWeight: "800",
-  },
-  segmentText: { color: colors.muted, paddingHorizontal: 22, paddingVertical: 10, fontWeight: "700" },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
-    gap: 16,
-    ...shadow,
-  },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
-  tripIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    borderCurve: "continuous",
-    backgroundColor: colors.successWash,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tripIconText: { color: colors.success, fontSize: 11, fontWeight: "900" },
-  routeBlock: { flex: 1, gap: 2 },
-  route: { color: colors.ink, fontSize: 15, fontWeight: "800" },
-  meta: { color: colors.muted, fontSize: 12 },
-  status: {
-    color: colors.success,
-    backgroundColor: colors.successWash,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    overflow: "hidden",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  details: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
-  detail: { flex: 1, gap: 4 },
-  detailLabel: { color: colors.muted, fontSize: 11, fontWeight: "700" },
-  detailValue: { color: colors.ink, fontSize: 12, fontWeight: "800" },
-  detailButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radii.md,
-    borderCurve: "continuous",
-    paddingVertical: 11,
-  },
-  pressed: { opacity: 0.7 },
-  detailButtonText: { color: colors.navy, fontWeight: "800" },
-  detailButtonArrow: { color: colors.navy, fontWeight: "800" },
-  emptyState: { alignItems: "center", paddingHorizontal: 32, paddingTop: 40, gap: 6 },
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    borderCurve: "continuous",
-    backgroundColor: colors.wash,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  emptyIconText: { color: colors.navy, fontSize: 13, fontWeight: "900" },
-  emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: "800", textAlign: "center" },
-  empty: { textAlign: "center", color: colors.muted, fontSize: 13, lineHeight: 19 },
-});
+function Detail({ label, value }: { label: string; value: string }) { return <View style={styles.detail}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>; }
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.wash }, centered: { flex: 1, alignItems: "center", justifyContent: "center" }, content: { padding: 16, gap: 12, paddingBottom: 30 }, header: { gap: 8, paddingBottom: 4 }, title: { color: colors.ink, fontSize: 25, fontWeight: "900" }, subtitle: { color: colors.muted, fontSize: 11 }, tabs: { flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.md, padding: 4, borderWidth: 1, borderColor: colors.line, marginTop: 6 }, tab: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderRadius: radii.sm }, tabActive: { backgroundColor: colors.navy }, tabText: { color: colors.muted, fontSize: 10, fontWeight: "800" }, tabTextActive: { color: colors.surface }, card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.line, padding: 15, gap: 13, ...shadow }, cardHeader: { flexDirection: "row", gap: 10 }, route: { color: colors.ink, fontSize: 15, fontWeight: "900" }, meta: { color: colors.muted, fontSize: 10, marginTop: 3 }, status: { color: colors.success, backgroundColor: colors.successWash, borderRadius: 7, paddingHorizontal: 8, paddingVertical: 6, overflow: "hidden", fontSize: 7, fontWeight: "900" }, details: { flexDirection: "row", gap: 10 }, detail: { flex: 1, gap: 3 }, detailLabel: { color: colors.muted, fontSize: 8 }, detailValue: { color: colors.ink, fontSize: 10, fontWeight: "800" }, footer: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }, reference: { color: colors.navy, fontSize: 10, fontWeight: "900" }, payment: { color: colors.text, fontSize: 8, fontWeight: "800" } });

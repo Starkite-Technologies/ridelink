@@ -6,6 +6,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AuthProvider } from './src/auth/AuthContext';
 import { getHasSeenOnboarding } from './src/onboarding/onboardingStorage';
+import { colors } from './src/theme';
+import { ThemeProvider, useAppTheme } from './src/theme-context';
 import {
   Manrope_400Regular,
   Manrope_500Medium,
@@ -15,7 +17,8 @@ import {
   useFonts,
 } from '@expo-google-fonts/manrope';
 
-export default function App() {
+function RideLinkApp() {
+  const { isDark } = useAppTheme();
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -37,16 +40,20 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         {!fontsLoaded || checkingOnboarding ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy }}>
+            <ActivityIndicator color={colors.success} />
           </View>
         ) : showOnboarding ? (
           <OnboardingScreen onDone={() => setShowOnboarding(false)} />
         ) : (
           <RootNavigator />
         )}
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? "light" : "dark"} />
       </AuthProvider>
     </SafeAreaProvider>
   );
+}
+
+export default function App() {
+  return <ThemeProvider><RideLinkApp /></ThemeProvider>;
 }

@@ -1,0 +1,48 @@
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Text } from "../../components/Typography";
+import { StateView } from "../../components/state-view";
+import type { LongRouteTrip } from "../../long-routes/types";
+import { formatDateTime, formatDuration, formatNad } from "../../long-routes/data";
+import type { LongRoutesStackParamList } from "../../navigation/types";
+import { api } from "../../api/client";
+import { colors, radii, shadow } from "../../theme";
+
+type Props = NativeStackScreenProps<LongRoutesStackParamList, "LongRouteDetail">;
+
+export default function LongRouteDetailScreen({ route, navigation }: Props) {
+  const [trip, setTrip] = useState<LongRouteTrip | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    setError(null);
+    try { setTrip(await api.getLongRoute(route.params.tripId)); } catch (err) { setError(err instanceof Error ? err.message : "Trip details could not be loaded"); }
+  }, [route.params.tripId]);
+  useEffect(() => { void load().finally(() => setLoading(false)); }, [load]);
+  if (loading) return <View style={styles.centered}><ActivityIndicator color={colors.success} /></View>;
+  if (error || !trip) return <StateView title="Trip unavailable" message={error ?? "This trip may have been removed."} actionLabel="Try again" onAction={() => { setLoading(true); void load().finally(() => setLoading(false)); }} />;
+  return (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
+        <View style={styles.hero}><Text style={styles.heroEyebrow}>NAMIBIA LONG ROUTE</Text><Text style={styles.heroRoute}>{trip.departureTown}</Text><View style={styles.heroLine}><View style={styles.heroDot} /><View style={styles.heroRoad} /><View style={styles.heroSquare} /></View><Text style={styles.heroRoute}>{trip.destinationTown}</Text></View>
+        <View style={styles.section}><View style={styles.titleRow}><View style={{ flex: 1 }}><Text style={styles.operator}>{trip.operatorName}</Text><Text style={styles.verified}>{trip.operatorVerified ? "Verified transport operator" : "Operator verification pending"}</Text></View><Text style={styles.rating}>★ {trip.driverRating.toFixed(1)}</Text></View><Text style={styles.muted}>{trip.completedTripCount} completed trips • Driver {trip.driverName}</Text></View>
+        <View style={styles.infoCard}><Info label="Departure" value={formatDateTime(trip.departureDateTime)} /><Info label="Estimated arrival" value={formatDateTime(trip.estimatedArrivalDateTime)} /><Info label="Travel time" value={formatDuration(trip.routeDurationMinutes)} /><Info label="Available seats" value={`${trip.availableSeatCount} of ${trip.totalSeatCount}`} /><Info label="Price per seat" value={formatNad(trip.basePrice)} /></View>
+        <View style={styles.section}><Text style={styles.sectionTitle}>Vehicle</Text><Text style={styles.primary}>{trip.vehicle.color} {trip.vehicle.make} {trip.vehicle.model}</Text><Text style={styles.muted}>{trip.vehicle.vehicleType} • Registration {trip.vehicle.registrationNumber}</Text><Text style={styles.verified}>{trip.vehicle.verificationStatus === "APPROVED" ? "Verified vehicle" : "Vehicle verification pending"}</Text></View>
+        <View style={styles.routeVisual}><Text style={styles.sectionTitle}>Route and stops</Text><RouteRow title={trip.departureTown} detail={trip.pickupPoints[0]?.name ?? "Pickup point confirmed after booking"} first />{trip.stops.map((stop) => <RouteRow key={`${stop.stopOrder}-${stop.name}`} title={stop.town ?? stop.name} detail={stop.name} />)}<RouteRow title={trip.destinationTown} detail={trip.dropOffPoints[0]?.name ?? "Drop-off point confirmed after booking"} last /></View>
+        <View style={styles.section}><Text style={styles.sectionTitle}>Amenities</Text><View style={styles.tags}>{trip.amenities.length ? trip.amenities.map((amenity) => <Text key={amenity} style={styles.tag}>{amenity}</Text>) : <Text style={styles.muted}>No amenities listed.</Text>}</View></View>
+        <View style={styles.section}><Text style={styles.sectionTitle}>Luggage and trip rules</Text><Text style={styles.primary}>{trip.luggageAllowance}</Text>{trip.tripRules.map((rule) => <Text key={rule} style={styles.rule}>• {rule}</Text>)}</View>
+        <View style={styles.policy}><Text style={styles.policyTitle}>Cancellation policy</Text><Text style={styles.policyText}>{trip.cancellationPolicy}</Text></View>
+        <View style={styles.section}><Text style={styles.sectionTitle}>Safety and contact</Text><Text style={styles.muted}>Driver contact details stay private until booking. Emergency and report options are available from your booking.</Text></View>
+      </ScrollView>
+      <View style={styles.footer}><View><Text style={styles.footerPrice}>{formatNad(trip.basePrice)}</Text><Text style={styles.footerMeta}>per passenger</Text></View><Pressable style={[styles.button, trip.availableSeatCount < route.params.passengers && styles.disabled]} disabled={trip.availableSeatCount < route.params.passengers} onPress={() => navigation.navigate("SeatSelection", { tripId: trip.tripId, passengers: route.params.passengers })}><Text style={styles.buttonText}>{trip.availableSeatCount < route.params.passengers ? "Not enough seats" : "Select your seat"}</Text></Pressable></View>
+    </View>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) { return <View style={styles.info}><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>; }
+function RouteRow({ title, detail, first, last }: { title: string; detail: string; first?: boolean; last?: boolean }) { return <View style={styles.routeRow}><View style={styles.markerColumn}><View style={[styles.marker, first && styles.markerFirst, last && styles.markerLast]} />{!last ? <View style={styles.verticalLine} /> : null}</View><View style={styles.routeCopy}><Text style={styles.primary}>{title}</Text><Text style={styles.muted}>{detail}</Text></View></View>; }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.surface }, centered: { flex: 1, alignItems: "center", justifyContent: "center" }, content: { paddingBottom: 120 }, hero: { backgroundColor: colors.navy, padding: 22, gap: 7 }, heroEyebrow: { color: colors.success, fontSize: 9, fontWeight: "900", letterSpacing: 1.3 }, heroRoute: { color: colors.surface, fontSize: 24, fontWeight: "900" }, heroLine: { flexDirection: "row", alignItems: "center", width: 180 }, heroDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }, heroRoad: { flex: 1, height: 2, backgroundColor: colors.navySoft }, heroSquare: { width: 10, height: 10, borderRadius: 2, backgroundColor: colors.surface }, section: { padding: 18, gap: 8, borderBottomWidth: 1, borderBottomColor: colors.line }, titleRow: { flexDirection: "row", alignItems: "center", gap: 12 }, operator: { color: colors.ink, fontSize: 20, fontWeight: "900" }, verified: { color: colors.success, fontSize: 11, fontWeight: "800" }, rating: { color: colors.warning, fontSize: 15, fontWeight: "900" }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, primary: { color: colors.ink, fontSize: 14, fontWeight: "800" }, sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: "900" }, infoCard: { margin: 16, padding: 16, borderRadius: radii.lg, backgroundColor: colors.wash, flexDirection: "row", flexWrap: "wrap", gap: 16, ...shadow }, info: { minWidth: "44%", flex: 1, gap: 3 }, infoLabel: { color: colors.muted, fontSize: 10, fontWeight: "700" }, infoValue: { color: colors.ink, fontSize: 13, fontWeight: "900" }, routeVisual: { padding: 18, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.line }, routeRow: { flexDirection: "row", gap: 12, minHeight: 54 }, markerColumn: { width: 14, alignItems: "center" }, marker: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.warning }, markerFirst: { backgroundColor: colors.success }, markerLast: { backgroundColor: colors.navy, borderRadius: 2 }, verticalLine: { width: 2, flex: 1, backgroundColor: colors.line, marginTop: 4 }, routeCopy: { flex: 1, gap: 2 }, tags: { flexDirection: "row", flexWrap: "wrap", gap: 7 }, tag: { color: colors.navy, backgroundColor: colors.wash, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 7, overflow: "hidden", fontSize: 10, fontWeight: "700" }, rule: { color: colors.text, fontSize: 12 }, policy: { margin: 18, padding: 15, backgroundColor: colors.successWash, borderRadius: radii.md, gap: 4 }, policyTitle: { color: colors.success, fontSize: 12, fontWeight: "900" }, policyText: { color: colors.text, fontSize: 12, lineHeight: 18 }, footer: { position: "absolute", bottom: 0, left: 0, right: 0, minHeight: 86, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 18, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 16, boxShadow: "0 -8px 22px rgba(15,23,42,0.08)" }, footerPrice: { color: colors.ink, fontSize: 18, fontWeight: "900", fontVariant: ["tabular-nums"] }, footerMeta: { color: colors.muted, fontSize: 10 }, button: { flex: 1, minHeight: 52, backgroundColor: colors.navy, borderRadius: radii.md, alignItems: "center", justifyContent: "center" }, buttonText: { color: colors.surface, fontSize: 15, fontWeight: "900" }, disabled: { opacity: 0.45 },
+});

@@ -2,6 +2,7 @@ import type { APIGatewayProxyHandlerV2WithJWTAuthorizer } from "aws-lambda";
 import { randomUUID } from "crypto";
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ddbClient, jsonResponse } from "./common";
+import { hasAccountType } from "./authRole";
 
 const TRIPS_TABLE = process.env.TRIPS_TABLE!;
 const BOOKINGS_TABLE = process.env.BOOKINGS_TABLE!;
@@ -12,6 +13,7 @@ type CreateBookingBody = {
 };
 
 export const handler: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (event) => {
+  if (!hasAccountType(event, "PASSENGER")) return jsonResponse(403, { message: "A Passenger account is required to book rides" });
   if (!event.body) return jsonResponse(400, { message: "Request body is required" });
 
   const { tripId, seats } = JSON.parse(event.body) as Partial<CreateBookingBody>;
