@@ -13,8 +13,6 @@ import WelcomeScreen from "../screens/WelcomeScreen";
 import SignInScreen from "../screens/SignInScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import ConfirmSignUpScreen from "../screens/ConfirmSignUpScreen";
-import MyCarsScreen from "../screens/MyCarsScreen";
-import AddCarScreen from "../screens/AddCarScreen";
 import { colors } from "../theme";
 import { useAuth } from "../auth/AuthContext";
 
@@ -35,8 +33,6 @@ function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerTitleStyle: { fontFamily: "Manrope_700Bold" } }}>
       <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: "Profile", headerShown: false }} />
-      <ProfileStack.Screen name="MyCars" component={MyCarsScreen} options={{ title: "My Cars", headerShown: false }} />
-      <ProfileStack.Screen name="AddCar" component={AddCarScreen} options={{ title: "Add a Car", headerShown: false }} />
     </ProfileStack.Navigator>
   );
 }

@@ -1,14 +1,12 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text, TextInput } from "../components/Typography";
 import BackButton from "../components/BackButton";
-import FormBanner from "../components/FormBanner";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardAwareScroll } from "../hooks/useKeyboardAwareScroll";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
 import { useAuth } from "../auth/AuthContext";
-import { mapSignUpError } from "../auth/cognitoErrors";
 import { colors, radii } from "../theme";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "SignUp">;
@@ -43,7 +41,6 @@ export default function SignUpScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; phoneNumber?: string; email?: string; password?: string; terms?: string }>({});
-  const [bannerError, setBannerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<"firstName" | "lastName" | "phoneNumber" | "email" | "password" | null>(null);
 
@@ -59,7 +56,6 @@ export default function SignUpScreen({ navigation }: Props) {
     if (!isPasswordValid(password)) nextErrors.password = "Your password doesn't meet all the requirements below";
     if (!acceptedTerms) nextErrors.terms = "Accept the terms to continue";
     setErrors(nextErrors);
-    setBannerError(null);
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
@@ -73,12 +69,7 @@ export default function SignUpScreen({ navigation }: Props) {
       });
       navigation.navigate("ConfirmSignUp", { email: cleanEmail });
     } catch (error) {
-      const mapped = mapSignUpError(error);
-      if (mapped.kind === "field") {
-        setErrors((current) => ({ ...current, [mapped.field]: mapped.message }));
-      } else {
-        setBannerError(mapped.message);
-      }
+      Alert.alert("Unable to create account", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -112,8 +103,6 @@ export default function SignUpScreen({ navigation }: Props) {
           <Text style={styles.formTitle}>Get started</Text>
           <Text style={styles.formSubtitle}>Enter your details, then verify your email address.</Text>
         </View>
-
-        {bannerError ? <FormBanner message={bannerError} /> : null}
 
         <View style={styles.fields}>
           <View style={styles.field}>
@@ -201,7 +190,6 @@ export default function SignUpScreen({ navigation }: Props) {
               onChangeText={(value) => {
                 setEmail(value);
                 if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
-                if (bannerError) setBannerError(null);
               }}
               onFocus={() => {
                 setFocusedField("email");
@@ -229,7 +217,6 @@ export default function SignUpScreen({ navigation }: Props) {
                 onChangeText={(value) => {
                   setPassword(value);
                   if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
-                  if (bannerError) setBannerError(null);
                 }}
                 onFocus={() => {
                   setFocusedField("password");

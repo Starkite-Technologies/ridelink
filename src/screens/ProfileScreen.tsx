@@ -1,7 +1,5 @@
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../components/Typography";
-import { Ionicons } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
@@ -13,18 +11,17 @@ type Props = NativeStackScreenProps<ProfileStackParamList, "ProfileHome">;
 type MenuItem = {
   key: string;
   label: string;
-  icon: ComponentProps<typeof Ionicons>["name"];
+  icon: string;
   iconBg: string;
   iconColor: string;
 };
 
 const MENU: MenuItem[] = [
-  { key: "trips", label: "My trips", icon: "list-outline", iconBg: colors.wash, iconColor: colors.navy },
-  { key: "cars", label: "My Cars", icon: "car-outline", iconBg: colors.wash, iconColor: colors.navy },
-  { key: "bookings", label: "My bookings", icon: "bookmark-outline", iconBg: colors.successWash, iconColor: colors.success },
-  { key: "payments", label: "Payment methods", icon: "card-outline", iconBg: colors.warningWash, iconColor: colors.warning },
-  { key: "settings", label: "Settings", icon: "settings-outline", iconBg: colors.wash, iconColor: colors.navy },
-  { key: "support", label: "Help & support", icon: "help-circle-outline", iconBg: colors.successWash, iconColor: colors.success },
+  { key: "trips", label: "My trips", icon: "TR", iconBg: colors.wash, iconColor: colors.navy },
+  { key: "bookings", label: "My bookings", icon: "BK", iconBg: colors.successWash, iconColor: colors.success },
+  { key: "payments", label: "Payment methods", icon: "PM", iconBg: colors.warningWash, iconColor: colors.warning },
+  { key: "settings", label: "Settings", icon: "ST", iconBg: colors.wash, iconColor: colors.navy },
+  { key: "support", label: "Help & support", icon: "HS", iconBg: colors.successWash, iconColor: colors.success },
 ];
 
 export default function ProfileScreen({ navigation }: Props) {
@@ -82,26 +79,13 @@ export default function ProfileScreen({ navigation }: Props) {
               {MENU.map((item, index) => (
                 <Pressable
                   key={item.key}
-                  style={({ pressed }) => [
-                    styles.menuRow,
-                    index === MENU.length - 1 && styles.menuRowLast,
-                    pressed && styles.menuRowPressed,
-                  ]}
-                  onPress={() => {
-                    if (item.key === "cars") {
-                      navigation.navigate("MyCars");
-                    } else if (item.key === "bookings") {
-                      navigation.getParent()?.navigate("Bookings");
-                    } else {
-                      Alert.alert(item.label, "Coming soon.");
-                    }
-                  }}
+                  style={[styles.menuRow, index === MENU.length - 1 && styles.menuRowLast]}
                 >
                   <View style={[styles.menuIcon, { backgroundColor: item.iconBg }]}>
-                    <Ionicons name={item.icon} size={17} color={item.iconColor} />
+                    <Text style={[styles.menuIconText, { color: item.iconColor }]}>{item.icon}</Text>
                   </View>
                   <Text style={styles.menuText}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+                  <Text style={styles.chevron}>{">"}</Text>
                 </Pressable>
               ))}
             </View>
@@ -196,9 +180,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   menuRowLast: { borderBottomWidth: 0 },
-  menuRowPressed: { backgroundColor: colors.wash },
   menuIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  menuIconText: { fontSize: 11, fontWeight: "900" },
   menuText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "700" },
+  chevron: { color: colors.muted, fontSize: 16, fontWeight: "800" },
   signOutButton: {
     alignItems: "center",
     paddingVertical: 15,

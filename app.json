@@ -23,13 +23,7 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-font",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "RideLink uses your photos to let you add a picture of your vehicle."
-        }
-      ]
+      "expo-font"
     ]
   }
 }

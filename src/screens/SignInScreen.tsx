@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,13 +9,11 @@ import {
 } from "react-native";
 import { Text, TextInput } from "../components/Typography";
 import BackButton from "../components/BackButton";
-import FormBanner from "../components/FormBanner";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardAwareScroll } from "../hooks/useKeyboardAwareScroll";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "../navigation/types";
 import { useAuth } from "../auth/AuthContext";
-import { mapSignInError, type AuthError } from "../auth/cognitoErrors";
 import { colors, radii } from "../theme";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "SignIn">;
@@ -31,7 +30,6 @@ export default function SignInScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [authError, setAuthError] = useState<AuthError | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<"email" | "password" | null>(null);
 
@@ -42,14 +40,13 @@ export default function SignInScreen({ navigation }: Props) {
     if (!EMAIL_REGEX.test(cleanEmail)) nextErrors.email = "Enter a valid email address";
     if (!password) nextErrors.password = "Enter your password";
     setErrors(nextErrors);
-    setAuthError(null);
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
     try {
       await signIn(cleanEmail, password);
     } catch (error) {
-      setAuthError(mapSignInError(error));
+      Alert.alert("Unable to sign in", error instanceof Error ? error.message : "Check your details and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -86,14 +83,6 @@ export default function SignInScreen({ navigation }: Props) {
           <Text style={styles.formSubtitle}>Use the email connected to your RideLink account.</Text>
         </View>
 
-        {authError ? (
-          <FormBanner
-            message={authError.message}
-            actionLabel={authError.kind === "banner" && authError.action === "resendConfirmation" ? "Verify email" : undefined}
-            onAction={() => navigation.navigate("ConfirmSignUp", { email: email.trim().toLowerCase() })}
-          />
-        ) : null}
-
         <View style={styles.fields}>
           <View style={styles.field}>
             <Text style={styles.label}>Email address</Text>
@@ -104,7 +93,6 @@ export default function SignInScreen({ navigation }: Props) {
               onChangeText={(value) => {
                 setEmail(value);
                 if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
-                if (authError) setAuthError(null);
               }}
               onFocus={() => {
                 setFocusedField("email");
@@ -132,7 +120,6 @@ export default function SignInScreen({ navigation }: Props) {
                 onChangeText={(value) => {
                   setPassword(value);
                   if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
-                  if (authError) setAuthError(null);
                 }}
                 onFocus={() => {
                   setFocusedField("password");

@@ -98,9 +98,8 @@ export default function TripDetailScreen({ route, navigation }: Props) {
         <InfoRow label="Drop-off" value={trip.destination} />
         <InfoRow label="Available seats" value={`${trip.seatsAvailable}`} />
         <InfoRow label="Price per seat" value={`N$${trip.pricePerSeat}`} />
-        <InfoRow label="Vehicle" value={trip.vehicleLabel || "Not specified"} />
+        <InfoRow label="Vehicle" value="Toyota Corolla" />
         <InfoRow label="Amenities" value="Aircon - Music - Luggage" />
-        {trip.notes ? <InfoRow label="Notes" value={trip.notes} /> : null}
       </View>
 
       <Pressable
